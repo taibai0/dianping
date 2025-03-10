@@ -1,5 +1,6 @@
 package com.hmdp.utils;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
@@ -8,9 +9,10 @@ import java.util.Collections;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+@Slf4j
 public class SimpleRedisLock implements ILock{
-    private StringRedisTemplate stringRedisTemplate;
-    private String name; //锁的名称
+    private final StringRedisTemplate stringRedisTemplate;
+    private final String name; //锁的名称
 
     public SimpleRedisLock(StringRedisTemplate stringRedisTemplate, String name) {
         this.stringRedisTemplate = stringRedisTemplate;
@@ -32,6 +34,8 @@ public class SimpleRedisLock implements ILock{
         String threadId = ID_PREFIX+Thread.currentThread().getId();
         //获取锁
         Boolean success = stringRedisTemplate.opsForValue().setIfAbsent(KEY_PREFIX + name, threadId, timeoutSec, TimeUnit.SECONDS);
+        log.info("Lock Key: {}", KEY_PREFIX + name);
+        log.info("Lock result: {}", success);
         return Boolean.TRUE.equals(success);  //自动拆箱可能会产生空指针
     }
 
@@ -53,6 +57,6 @@ public class SimpleRedisLock implements ILock{
         stringRedisTemplate.execute(
                 UNLOCK_SCRIPT,
                 Collections.singletonList(KEY_PREFIX+name),
-                ID_PREFIX+Thread.currentThread().getId());
+                String.valueOf(ID_PREFIX+Thread.currentThread().getId()));
     }
 }
